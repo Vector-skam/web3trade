@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WEB3 Trading Terminal</title>
+    <style>
+        :root {
+            --bg: #050505;
+            --card: #111;
+            --neon: #00ff88;
+            --text: #888;
+        }
+
+        body {
+            background: white;
+            color: #eee;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Шапка */
+        .header {
+            padding: 10px 20px;
+            background: #000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #222;
+        }
+
+        .header h1 { font-size: 14px; letter-spacing: 3px; color: var(--neon); margin: 0; }
+
+        /* Сетка 3x3 */
+        .terminal-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 5px;
+            flex-grow: 1;
+            padding: 5px;
+            background: #000;
+        }
+
+        .chart-slot {
+            background: var(--card);
+            border: 1px solid #222;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .add-btn {
+            background: none;
+            border: 1px dashed var(--neon);
+            color: var(--neon);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: monospace;
+            transition: 0.3s;
+        }
+
+        .add-btn:hover { background: rgba(0, 255, 136, 0.1); }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(255,0,0,0.5);
+            border: none;
+            color: white;
+            cursor: pointer;
+            z-index: 10;
+            padding: 2px 5px;
+            font-size: 10px;
+            display: none;
+        }
+
+        .chart-slot:hover .remove-btn { display: block; }
+
+        .footer-info {
+            font-size: 10px;
+            padding: 5px 20px;
+            color: #444;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+<h1><a href="https://web3my.netlify.app">My Web3</a></h1>
+    <div class="header">
+        <h1>TRADING TERMINAL v1.0</h1>
+        <div id="clock" style="font-family: monospace; font-size: 12px;"></div>
+    </div>
+
+    <div class="terminal-grid" id="grid"></div>
+
+    <div class="footer-info">
+        <span>DIDUKH.MAXIM@GMAIL.COM</span>
+        <span>WEB3CP SYSTEM OPERATIONAL</span>
+    </div>
+
+    <script>
+        const grid = document.getElementById('grid');
+        let charts = JSON.parse(localStorage.getItem('trading-charts')) || {};
+
+        function init() {
+            grid.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'chart-slot';
+                
+                if (charts[i]) {
+                    slot.innerHTML = `
+                        <button class="remove-btn" onclick="removeChart(${i})">RESET</button>
+                        <iframe src="${charts[i]}"></iframe>
+                    `;
+                } else {
+                    slot.innerHTML = `<button class="add-btn" onclick="addChart(${i})">+ ADD SYMBOL</button>`;
+                }
+                grid.appendChild(slot);
+            }
+        }
+
+        window.addChart = (i) => {
+            const input = prompt("Введите тикер (например: BTCUSDT, AAPL, GOLD) или ссылку:");
+            if (!input) return;
+
+            let finalUrl = "";
+
+            // Если ввели просто тикер, делаем график TradingView по умолчанию
+            if (!input.includes("http")) {
+                // Используем бесплатный виджет встраивания TradingView
+                finalUrl = `https://s.tradingview.com/widgetembed/?symbol=${input.toUpperCase()}&interval=D&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=dark&style=1&timezone=Etc%2FUTC`;
+            } 
+            // Если ссылка с Investing.com
+            else if (input.includes("investing.com")) {
+                // Пытаемся адаптировать ссылку (investing сложно встраивать напрямую без их виджета, 
+                // поэтому перенаправляем на их официальный чарт-виджет)
+                finalUrl = input; 
+                alert("Investing.com может блокировать встраивание. Лучше вводите просто тикер для TradingView.");
+            }
+            // Если ссылка с TradingView
+            else if (input.includes("tradingview.com")) {
+                const symbolMatch = input.match(/symbols\/([^\/]+)/);
+                const symbol = symbolMatch ? symbolMatch[1] : "BTCUSDT";
+                finalUrl = `https://s.tradingview.com/widgetembed/?symbol=${symbol}&interval=D&theme=dark`;
+            }
+
+            if (finalUrl) {
+                charts[i] = finalUrl;
+                localStorage.setItem('trading-charts', JSON.stringify(charts));
+                init();
+            }
+        };
+
+        window.removeChart = (i) => {
+            delete charts[i];
+            localStorage.setItem('trading-charts', JSON.stringify(charts));
+            init();
+        };
+
+        // Часы
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+        }, 1000);
+
+        init();
+    </script>
+</body>
+</html>
+
